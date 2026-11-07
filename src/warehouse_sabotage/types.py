@@ -1,6 +1,6 @@
 """Shared interfaces between teammates (agents and environments): state snapshot, Policy and Monitor protocols.
 
-Fields may grow but never silently shrink; change only through a PR all three people see (project.md section 6).
+Fields may grow but never silently shrink; change only through a PR all three people see (the shared contract between monitor, RL and planning code).
 """
 from __future__ import annotations
 
