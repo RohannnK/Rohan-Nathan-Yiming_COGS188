@@ -5,7 +5,9 @@ env:
   max_steps: 500
   sensor_range: 1
 layouts: [tiny, tiny_choke]
-deadlock_L: 100  # no delivery for L consecutive steps counts as a deadlock
+# No delivery for L consecutive steps counts as a deadlock. Chosen after seeing Week 6 data: the 95th percentile
+# (rounded) of the longest no-delivery gap per episode in no_saboteur, per layout (30 episodes each).
+deadlock_L: {tiny: 26, tiny_choke: 30}
 
 # condition name -> fleet kind (random | honest | parked | saboteur behaviour)
 conditions:

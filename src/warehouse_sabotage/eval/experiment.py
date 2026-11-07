@@ -43,11 +43,13 @@ def run_experiment(cfg: dict, smoke: bool = False, data_dir="data", results_dir=
     episodes = []
     for spec, seeds in episode_specs(cfg, smoke):
         t0 = time.perf_counter()
+        L = cfg.get("deadlock_L", 100)
+        L = L[spec["layout"]] if isinstance(L, dict) else L
         run_eps = []
         for seed in seeds:
             df = rows_to_frame(run_episode(spec, seed))
             write_episode(df, data_dir, spec["run_name"], seed)
-            run_eps.append(episode_metrics(df, cfg.get("deadlock_L", 100)))
+            run_eps.append(episode_metrics(df, L))
         run_df = pd.DataFrame(run_eps)
         out = Path(results_dir) / spec["run_name"]
         out.mkdir(parents=True, exist_ok=True)
