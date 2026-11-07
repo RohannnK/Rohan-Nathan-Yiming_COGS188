@@ -31,3 +31,14 @@ If `requirements.txt` changes later, update with `conda env update -f environmen
 - Make small commits with imperative messages and run `pytest` before each one.
 - Before opening a pull request: `git fetch origin && git rebase origin/main`, then push and open the PR. One teammate reviews before merging.
 - Never force-push a shared branch.
+
+## Running the Week 6 baseline
+
+```bash
+python scripts/run_baseline.py --smoke        # 2 episodes per condition, 100 steps (under 10 s)
+python scripts/run_baseline.py                # full run: 30 episodes x 7 conditions x 2 layouts (about 2 min)
+python scripts/compare_planners.py            # BFS vs UCS vs greedy vs A*
+python scripts/make_gif.py --conditions no_saboteur goal_blocker --layout tiny_choke   # needs a display
+```
+
+Episode logs go to `data/episodes/` (parquet, gitignored), per-run episode metrics to `results/<run_name>/episodes.csv`, and condition summaries to `results/summary/`. Results and observations: `docs/week6_results.md`.
