@@ -14,6 +14,9 @@ from .base import FleetContext, Navigator
 from .task_assignment import empty_slots, parking_tiles
 
 
+PLANNED_CELLS_LOGGED = 8  # next tiles logged for Week 7 aisle-blocking features
+
+
 class HonestAStarPolicy:
     def __init__(self, ctx: FleetContext):
         self.ctx = ctx
@@ -124,4 +127,5 @@ class HonestAStarPolicy:
         return NOOP if a is None else a
 
     def debug_info(self) -> dict:
-        return {"phase": self.phase, **self.nav.debug(), "sabotage_active": False}
+        return {"phase": self.phase, **self.nav.debug(), "sabotage_active": False,
+                "planned_cells": self.nav.planned[:PLANNED_CELLS_LOGGED]}

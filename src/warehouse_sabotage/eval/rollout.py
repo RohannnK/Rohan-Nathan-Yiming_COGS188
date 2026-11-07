@@ -15,6 +15,9 @@ from ..env.state import extract_state
 def run_episode(spec: dict, seed: int, on_step: Callable | None = None) -> list[dict]:
     """Run one episode and return one log row per robot per step (project.md section 7 schema).
 
+    ``planned_cells`` holds an honest robot's next (up to 8) planned tiles as [x, y] pairs, starting with the tile
+    it should occupy at t+1; it is empty for saboteur, parked and random robots and for honest robots holding still.
+
     spec keys: run_name, condition, layout, kind ('random', 'honest', 'parked' or a saboteur behaviour),
     env (make_env kwargs), planner, saboteur. ``on_step(env)`` is called after reset and after every step.
     """
@@ -54,6 +57,7 @@ def run_episode(spec: dict, seed: int, on_step: Callable | None = None) -> list[
                 "sabotage_active": bool(d["sabotage_active"]), "task_phase": d["phase"],
                 "plan_len": d["plan_len"], "plan_ms": d["plan_ms"], "nodes_expanded": d["nodes_expanded"],
                 "replanned": bool(d["replanned"]), "reward": rewards[i],
+                "planned_cells": [list(c) for c in d.get("planned_cells", [])],
             })
         state = extract_state(w, state.t + 1)
         if on_step:

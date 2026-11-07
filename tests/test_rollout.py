@@ -37,3 +37,16 @@ def test_honest_fleet_delivers_and_random_does_not():
 def test_longest_gap():
     assert longest_gap([], 500) == 500
     assert longest_gap([9, 10, 400], 500) == 389
+
+
+def test_planned_cells_start_with_next_tile():
+    df = episode("goal_blocker")
+    assert df["planned_cells"].map(len).max() <= 8
+    others = df[df["is_saboteur"]]
+    assert others["planned_cells"].map(len).eq(0).all()
+    nxt = df.sort_values(["robot_id", "t"]).groupby("robot_id").shift(-1)
+    cur = df.sort_values(["robot_id", "t"])
+    following = cur["planned_cells"].map(len).gt(0) & cur["moved"] & nxt["t"].notna()
+    assert following.sum() > 50
+    first = cur.loc[following, "planned_cells"].map(lambda p: tuple(p[0]))
+    assert (first == list(zip(nxt.loc[following, "x"], nxt.loc[following, "y"]))).all()

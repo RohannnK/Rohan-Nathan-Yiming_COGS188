@@ -40,6 +40,7 @@ class Navigator:
         self.actions: list[int] = []
         self.target = None
         self.expected = None
+        self.planned: list[tuple[int, int]] = []
         self.last_plan_t = -(10**9)
         self.move_failed = False
         self.begin_step()
@@ -68,6 +69,7 @@ class Navigator:
         """Stay put: reserve the current cell for the next few steps and drop the plan."""
         me = state.robots[self.rid]
         self.states, self.actions, self.expected = [], [], (me.x, me.y, me.direction)
+        self.planned = []
         if self.cooperative:
             self.ctx.table.clear(self.rid)
             self.ctx.table.reserve_path(self.rid, state.t, [(me.x, me.y)], stay=2)
@@ -98,6 +100,7 @@ class Navigator:
             self.hold(state)
             return NOOP
         self.expected = self.states.pop(0)
+        self.planned = [self.expected[:2]] + [s[:2] for s in self.states]  # cells at t+1, t+2, ...
         a = self.actions.pop(0)
         if self.cooperative:
             self.ctx.plans[self.rid] = [s[:2] for s in self.states]
