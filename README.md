@@ -1,9 +1,8 @@
-# COGS188 Project template
-Fork this repo.
+# Catching a Covert Saboteur in an Autonomous Warehouse Fleet
 
-Once you do it is is your repo. You are free to manage the repo as you see fit, edit this README, add data files, add scripts, etc. 
+COGS 188 group project (UC San Diego) by Rohan Kaman, Nathan Bustos Medina and Yiming Sun.
 
-Also, you are free and encouraged to share this project after the course and to add it to your portfolio. Just be sure to fork it to your GitHub at the end of the quarter!
+Four robots work in the [rware](https://github.com/uoe-agents/robotic-warehouse) warehouse simulator, and one of them is a covert saboteur. Honest robots plan with A* and replanning; a runtime monitor tries to flag the saboteur so the fleet can route around it. We also compare SARSA and Q-learning on a small gridworld and train a Double/Dueling DQN honest robot. See the proposal notebook for full details.
 
 ## Setup
 
@@ -31,4 +30,4 @@ If `requirements.txt` changes later, update with `conda env update -f environmen
 - Never commit to `main`. Branch from an up-to-date `main`: `git checkout main && git pull && git checkout -b feat/<topic>` (or `fix/`, `chore/`, `exp/`).
 - Make small commits with imperative messages and run `pytest` before each one.
 - Before opening a pull request: `git fetch origin && git rebase origin/main`, then push and open the PR. One teammate reviews before merging.
-- Never force-push a shared branch. See `project.md` for the full project guide.
+- Never force-push a shared branch.

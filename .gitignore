@@ -31,3 +31,7 @@ checkpoints/
 *.avi
 *.gif
 !docs/media/*.gif
+
+# Local-only project guides
+project.md
+CLAUDE.md
