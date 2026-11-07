@@ -15,7 +15,7 @@ import pandas as pd
 from ..env.layouts import LAYOUTS, parse_layout
 from ..planning.search import search
 from .logging import rows_to_frame, write_episode
-from .metrics import condition_summary, episode_metrics
+from .metrics import episode_metrics
 from .rollout import run_episode
 
 log = logging.getLogger(__name__)
@@ -56,10 +56,6 @@ def run_experiment(cfg: dict, smoke: bool = False, data_dir="data", results_dir=
         log.info("%s: %d episodes in %.1fs, D=%.1f", spec["run_name"], len(seeds),
                  time.perf_counter() - t0, run_df["deliveries"].mean())
     return pd.concat(episodes, ignore_index=True)
-
-
-def summarise(episodes: pd.DataFrame) -> pd.DataFrame:
-    return condition_summary(episodes)
 
 
 def compare_planners(n_pairs: int = 100, seed: int = 0, layouts=("tiny", "tiny_choke"),

@@ -5,7 +5,8 @@ from pathlib import Path
 
 import yaml
 
-from warehouse_sabotage.eval.experiment import run_experiment, summarise
+from warehouse_sabotage.eval.experiment import run_experiment
+from warehouse_sabotage.eval.metrics import condition_summary
 
 p = argparse.ArgumentParser()
 p.add_argument("--config", default="configs/week6_baseline.yaml")
@@ -14,7 +15,7 @@ args = p.parse_args()
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 cfg = yaml.safe_load(open(args.config))
-summary = summarise(run_experiment(cfg, smoke=args.smoke))
+summary = condition_summary(run_experiment(cfg, smoke=args.smoke))
 out = Path("results") / f"{cfg['name']}_smoke" if args.smoke else Path("results/summary")
 out.mkdir(parents=True, exist_ok=True)
 path = out / ("summary.csv" if args.smoke else f"{cfg['name']}.csv")
