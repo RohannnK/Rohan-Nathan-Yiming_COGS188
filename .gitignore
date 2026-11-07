@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.venv/
+
+# macOS
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data and results (summary CSVs are kept)
+data/
+results/*
+!results/summary/
+
+# Model checkpoints
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+
+# Large media (small GIFs in docs/media/ are allowed)
+*.mp4
+*.mov
+*.avi
+*.gif
+!docs/media/*.gif
