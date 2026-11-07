@@ -35,3 +35,6 @@ checkpoints/
 # Local-only project guides
 project.md
 CLAUDE.md
+
+# iCloud Drive conflict copies (e.g. "base 2.py")
+* [0-9].*
