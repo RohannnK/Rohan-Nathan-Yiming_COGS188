@@ -32,12 +32,12 @@ class Flagging:
     def flagged(self): return self.ids
 
 
-def first_route(oracle, monitor=None, saboteur=(3, 5), quarantine=None):
-    """Honest robot 0 carries a requested shelf from (3, 2) to a goal; robot 1 is the (parked) saboteur."""
+def first_route(oracle, monitor=None, saboteur=(3, 5), quarantine=None, start=(3, 2)):
+    """Honest robot 0 carries a requested shelf from ``start`` to a goal; robot 1 is the (parked) saboteur."""
     fleet = build_fleet("parked", 4, 1, {}, {}, oracle=oracle, monitor=monitor)
     if quarantine:
         fleet.ctx.quarantine.update(quarantine)
-    s = state(0, [(3, 2, 0), (*saboteur, None), (0, 9, None), (9, 9, None)])
+    s = state(0, [(*start, 0), (*saboteur, None), (0, 9, None), (9, 9, None)])
     fleet.reset(s, [np.random.default_rng(i) for i in range(4)])
     fleet.act(s)
     return fleet, [tuple(c) for c in fleet.policies[0].debug_info()["planned_cells"]]
@@ -127,3 +127,18 @@ def test_online_features_match_the_logged_features():
     pd.testing.assert_frame_equal(online.sort_values(key)[key + list(FEATURES)].reset_index(drop=True),
                                   offline.sort_values(key)[key + list(FEATURES)].reset_index(drop=True))
     assert online[online["robot_id"] == 3]["drop_displacement"].max() == 7
+
+
+def test_quarantined_goal_is_not_chosen_as_target():
+    _, route = first_route(oracle=False, saboteur=(6, 5), quarantine={1: (4, 10)}, start=(4, 8))
+    assert (4, 10) not in route and (5, 10) in route
+
+
+def test_fleet_never_enters_quarantined_tiles_even_if_every_goal_is_quarantined():
+    _, route = first_route(oracle=False, saboteur=(6, 5), quarantine={1: (4, 10), 2: (5, 10)}, start=(4, 8))
+    assert (4, 10) not in route and (5, 10) not in route
+
+
+def test_quarantined_tile_can_be_left_by_a_robot_standing_on_it():
+    _, route = first_route(oracle=False, saboteur=(6, 5), quarantine={1: (3, 2)}, start=(3, 2))
+    assert route and (3, 2) not in route[1:]

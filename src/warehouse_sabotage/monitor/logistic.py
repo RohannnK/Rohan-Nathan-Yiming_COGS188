@@ -39,9 +39,10 @@ def fit_logistic(train: pd.DataFrame, Cs=(0.01, 0.1, 1.0, 10.0), folds: int = 5,
         return make_pipeline(StandardScaler(), LogisticRegression(C=C, class_weight="balanced", max_iter=1000,
                                                                   random_state=seed))
 
-    folds = min(folds, groups.nunique())
-    auc = {C: cross_val_score(pipe(C), X, y, groups=groups, cv=GroupKFold(folds), scoring="roc_auc").mean()
-           for C in Cs}
+    splits = list(GroupKFold(min(folds, groups.nunique())).split(X, y, groups))
+    if any(y[test].all() or not y[test].any() or y[train].all() or not y[train].any() for train, test in splits):
+        raise ValueError("every cross-validation fold needs both classes; use fewer folds or more episodes")
+    auc = {C: cross_val_score(pipe(C), X, y, cv=splits, scoring="roc_auc").mean() for C in Cs}
     best = max(auc, key=auc.get)
     return LogisticMonitorModel(pipe(best).fit(X, y), features=features)
 

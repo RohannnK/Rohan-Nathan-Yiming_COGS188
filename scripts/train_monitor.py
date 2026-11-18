@@ -30,7 +30,14 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("train_monitor")
 
 runs = sorted(d.name for d in (Path(args.data) / "episodes").glob(f"{args.prefix}__*"))
-windows = pd.concat([build_windows(load_run(args.data, r), args.window, args.stride) for r in runs], ignore_index=True)
+windows, missing = [], []
+for r in runs:
+    ep = load_run(args.data, r)
+    windows.append(build_windows(ep, args.window, args.stride))
+    missing.append(ep.groupby("is_saboteur")["target_x"].apply(lambda s: s.isna().mean()))
+windows = pd.concat(windows, ignore_index=True)
+log.info("share of rows without a planner target (path_efficiency is 0 there), by is_saboteur: %s",
+         pd.concat(missing).groupby(level=0).mean().round(4).to_dict())
 windows["split"] = split_by_seed(windows, seed=args.seed)
 log.info("%d windows from %d runs; episodes per split: %s", len(windows), len(runs),
          windows.groupby("split")["episode_seed"].nunique().to_dict())

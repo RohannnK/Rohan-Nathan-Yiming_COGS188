@@ -45,7 +45,7 @@ def test_aisle_blocking_uses_other_robots_planned_cells():
     path1 = [(3, y) for y in range(1, 9)] + [(3, 8)] * 32
     planned = {1: [[[3, 5]] if t < 10 else [] for t in range(40)]}
     df = episode([[(3, 5)] * 40, path1], planned=planned)
-    f = feats(df)
+    f = feats(df, ends=[19, 39])
     assert f[0].loc[19, "aisle_blocking"] == 10 and f[1].loc[19, "aisle_blocking"] == 0
     assert f[0].loc[39, "aisle_blocking"] == 0
 
@@ -65,7 +65,7 @@ def test_next_to_stalled_needs_a_robot_that_stopped_on_a_highway():
 
 def test_goal_distance_and_corridor_fraction():
     df = episode([[(4, 9)] * 20 + [(3, 9)] * 20])
-    a = feats(df)[0]
+    a = feats(df, ends=[19, 39])[0]
     assert a.loc[19, "goal_distance"] == 1 and a.loc[39, "goal_distance"] == 2
 
 

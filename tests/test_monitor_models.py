@@ -118,3 +118,32 @@ def test_monitor_report_on_synthetic_windows(windows):
     r = monitor_report(test, rule.score(test), rule.tau)
     assert r["window_recall"] > 0.9 and r["robot_precision"] > 0.9 and r["detection_rate"] == 1
     assert r["false_positive_rate"] == 0 and r["ttd_mean"] >= 0
+
+
+def test_early_flag_counts_as_zero_ttd_and_is_reported():
+    def rows(robot, sab, flags):
+        return pd.DataFrame({"run_name": "r", "episode_seed": 1, "robot_id": robot, "t_end": [19, 29, 39, 49],
+                             "is_saboteur": sab, "t_first_sabotage": 35, "horizon": 100, "flag": flags})
+    m = detection_metrics(first_flag(rows(0, True, [False, True, True, True])))  # flagged at 29, sabotage starts at 35
+    assert m["ttd_mean"] == 0 and m["early_flag_rate"] == 1 and m["detection_rate"] == 1
+
+
+def test_default_windows_stop_before_the_last_step():
+    from monitor_helpers import episode, GOALS, HIGHWAYS
+    from warehouse_sabotage.monitor.features import window_table
+    # the last step has no successor state online, so no live window can end there
+    ends = window_table(episode([[(0, 0)] * 50]), HIGHWAYS, GOALS)["t_end"].unique()
+    assert list(ends) == [19, 29, 39] and window_table(episode([[(0, 0)] * 50]), HIGHWAYS, GOALS, stride=10,
+                                                       ends=[49])["t_end"].iloc[0] == 49
+    assert list(window_table(episode([[(0, 0)] * 51]), HIGHWAYS, GOALS)["t_end"].unique()) == [19, 29, 39, 49]
+
+
+def test_cross_validation_folds_are_grouped_and_need_both_classes(windows):
+    train = windows[windows["split"] == "train"]
+    fit_logistic(train, folds=3)  # every fold has both classes: fine
+    one_class = train[~train["is_saboteur"]]
+    with pytest.raises(ValueError, match="both classes"):
+        fit_logistic(one_class, folds=3)
+    broken = train.assign(is_saboteur=train["episode_seed"].eq(train["episode_seed"].iloc[0]))  # 1 group holds all positives
+    with pytest.raises(ValueError, match="both classes"):
+        fit_logistic(broken, folds=3)

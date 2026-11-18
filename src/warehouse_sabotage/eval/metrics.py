@@ -90,24 +90,27 @@ def first_flag(windows: pd.DataFrame, flag: str = "flag", persist: int = 1) -> p
 def detection_metrics(flags: pd.DataFrame) -> dict:
     """Time-to-detection, detection rate and robot-episode false-positive rate from ``first_flag`` output.
 
-    TTD = t_flag - t_first_sabotage; a saboteur that is never flagged counts as horizon - t_first_sabotage.
+    TTD = t_flag - t_first_sabotage; a saboteur that is never flagged counts as horizon - t_first_sabotage. A saboteur
+    flagged before its first sabotage step is an early detection: TTD is floored at 0 and ``early_flag_rate`` reports them.
     """
     sab = flags[flags["is_saboteur"] & flags["t_first_sabotage"].notna()]
-    ttd = sab["t_flag"].fillna(sab["horizon"]) - sab["t_first_sabotage"]
+    ttd = (sab["t_flag"].fillna(sab["horizon"]) - sab["t_first_sabotage"]).clip(lower=0)
     honest = flags[~flags["is_saboteur"]]
     return {"saboteur_episodes": len(sab), "detection_rate": float(sab["t_flag"].notna().mean()),
             "ttd_mean": float(ttd.mean()), "ttd_std": float(ttd.std()),
+            "early_flag_rate": float((sab["t_flag"] < sab["t_first_sabotage"]).mean()),
             "honest_robot_episodes": len(honest), "false_positive_rate": float(honest["t_flag"].notna().mean())}
 
 
 def monitor_summary(episodes: pd.DataFrame, horizon: int = 500) -> pd.DataFrame:
-    """Per (condition, layout): detection rate, TTD (never flagged counts as horizon - t_first_sabotage), robot-episode FPR."""
+    """Per (condition, layout): detection rate, TTD (never flagged counts as horizon - t_first_sabotage, early flags as 0), robot-episode FPR."""
     rows = []
     for (cond, layout), g in episodes.groupby(["condition", "layout"], sort=False):
         sab = g[g["t_first_sabotage"].notna()]
-        ttd = sab["t_flag_saboteur"].fillna(horizon) - sab["t_first_sabotage"]
+        ttd = (sab["t_flag_saboteur"].fillna(horizon) - sab["t_first_sabotage"]).clip(lower=0)
         rows.append({"condition": cond, "layout": layout, "episodes": len(g),
                      "detection_rate": sab["t_flag_saboteur"].notna().mean() if len(sab) else np.nan,
+                     "early_flag_rate": (sab["t_flag_saboteur"] < sab["t_first_sabotage"]).mean() if len(sab) else np.nan,
                      "ttd_mean": ttd.mean() if len(sab) else np.nan, "ttd_std": ttd.std() if len(sab) else np.nan,
                      "false_positive_rate": g["false_flags"].sum() / g["honest_robots"].sum()})
     return pd.DataFrame(rows)

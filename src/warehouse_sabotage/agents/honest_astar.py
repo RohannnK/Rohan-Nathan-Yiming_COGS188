@@ -54,7 +54,7 @@ class HonestAStarPolicy:
                 return self._continue_yield(state, loaded)
 
         board = self.ctx.board
-        rogue_tiles = self._others(state, honest=False)
+        rogue_tiles = self._others(state, honest=False) | set(self.ctx.quarantine.values())
         target, toggle_at_target = self._choose_target(state, me, loaded, rogue_tiles)
         if target is None:
             self.nav.hold(state)
@@ -79,7 +79,8 @@ class HonestAStarPolicy:
                 toggle = False
             else:
                 self.phase = "return_shelf"
-                options = empty_slots(state)
+                slots = empty_slots(state)
+                options = [s for s in slots if s not in self.ctx.quarantine.values()] or slots
                 toggle = True
         else:
             sid = board.shelf.get(rid)
@@ -93,7 +94,8 @@ class HonestAStarPolicy:
                 self.phase = "to_shelf"
                 return state.shelf_positions[sid], True
             self.phase = "idle"
-            options = parking_tiles(state)
+            parking = parking_tiles(state)
+            options = [p for p in parking if p not in self.ctx.quarantine.values()] or parking
             toggle = False
             if (me.x, me.y) in options:
                 board.tile[rid] = (me.x, me.y)

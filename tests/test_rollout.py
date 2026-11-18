@@ -70,3 +70,34 @@ def test_monitor_flags_reach_the_log_and_the_planners(tmp_path):
     assert len(flagged) == 0 or flagged["t"].min() >= 20  # nothing can be flagged before the first full window
     first = flagged.groupby("robot_id")["t"].min()
     assert all(df[(df["robot_id"] == r) & (df["t"] >= t)]["flagged"].all() for r, t in first.items())  # permanent
+
+
+def test_online_monitor_rows_match_the_episode_logger(monkeypatch):
+    """Parity of the events the live monitor infers from states with the events the simulator logged."""
+    import numpy as np
+    import pandas as pd
+
+    from warehouse_sabotage.eval import rollout
+    from warehouse_sabotage.monitor.quarantine import QuarantineMonitor
+
+    class Silent:
+        tau = 2.0
+        def score(self, w):
+            return np.zeros(len(w))
+
+    made = []
+    monkeypatch.setattr(rollout, "load_monitor", lambda path: made.append(QuarantineMonitor(Silent())) or made[-1])
+    spec = {"run_name": "test", "condition": "c", "layout": "tiny_choke", "kind": "goal_blocker", "oracle": False,
+            "monitor": "unused", "env": {"max_steps": 300}}
+    log = rows_to_frame(run_episode(spec, 7))
+    online = pd.DataFrame(made[0].rows)
+    both = log.merge(online, on=["t", "robot_id"], suffixes=("", "_on"))
+    assert len(both) == len(online) == 4 * 299  # the last step never gets a successor state
+    for col in ("x", "y", "action", "moved", "picked_up", "dropped", "delivered", "carrying_requested",
+                "on_chokepoint", "on_highway"):
+        assert (both[col] == both[col + "_on"]).all(), col
+    assert both["delivered"].sum() > 0 and both["picked_up"].sum() > 0
+    assert (both["planned_cells"].map(lambda c: [list(p) for p in c]) == both["planned_cells_on"].map(
+        lambda c: [list(p) for p in c])).all()
+    for k in ("target_x", "target_y"):
+        assert (both[k].fillna(-1).astype(int) == both[k + "_on"].fillna(-1).astype(int)).all()

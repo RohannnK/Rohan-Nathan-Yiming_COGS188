@@ -31,11 +31,19 @@ Status: all seven Week 7 deliverables are implemented on branch `feat/week7-moni
 - `Navigator.debug()` also returns `target`.
 - Week 6 defaults are unchanged by construction (`is_rogue` reduces to the old test when `oracle=True` and nothing is flagged), but this was not confirmed against the simulator, see below.
 
+## Conventions fixed after review
+
+- **Quarantine is not bypassed.** A quarantined tile stays an obstacle even when it is the robot's target (a target may still be a tile another robot stands on, as in Week 6). Honest robots no longer choose a quarantined goal, return slot or parking tile when another exists; a robot standing on a quarantined tile may leave it. If every goal is quarantined the robot waits rather than entering one.
+- **Timing.** In step t the controller reads the flags (`act`), then the monitor sees state t (`update`). That completes the row of step t - 1, so a window ending at `t_end` is scored at state `t_end + 1` and the planners react from step `t_end + 2`. Offline `t_flag` is `t_end`; the closed-loop `flagged` column turns True two steps later. The row of the last step never completes online, so offline windows also stop one step before the episode end.
+- **Early detection.** A saboteur flagged before its first sabotage step counts as TTD 0 (floor) and is reported separately as `early_flag_rate`; such a flag is not a false positive, because the robot-level label is the saboteur.
+- **Missing targets.** `path_efficiency` is 0 when a robot has no planner target. Only the first step of an episode and random robots lack one, but `train_monitor.py` logs the share of rows without a target for saboteurs and honest robots, so a gap between the two would show up before the model is trusted.
+- **Cross-validation.** `fit_logistic` raises if a fold lacks either class, instead of returning NaN AUC. Folds are grouped by `episode_seed`.
+
 ## Tests
 
-Run in the authoring environment (39 passed in about 3 s): `tests/test_planning.py` (the 12 Week 6 planning tests), `tests/test_monitor_features.py` (11), `tests/test_monitor_models.py` (10), `tests/test_quarantine.py` (6). They use hand-made logs and states, no simulator.
+Run in the authoring environment (45 passed in about 3 s): `tests/test_planning.py` (the 12 Week 6 planning tests), `tests/test_monitor_features.py` (11), `tests/test_monitor_models.py` (14), `tests/test_quarantine.py` (8). They use hand-made logs and states, no simulator.
 
-Written but not run: `tests/test_rollout.py` (two new tests; the Week 6 tests in that file, `test_env_*` and `test_layouts` also need rware and gymnasium).
+Written but not run: `tests/test_rollout.py` (three new tests, including `test_online_monitor_rows_match_the_episode_logger`, which compares the delivered, picked_up, dropped and moved events the live monitor infers with the simulator's own log). The Week 6 tests in that file, `test_env_*` and `test_layouts` also need rware and gymnasium. Until that parity test passes, the online `delivered` rule (requested shelf still carried and standing on a goal after the step) is unverified.
 
 ## Not yet run (needs the `cogs188` environment)
 
@@ -45,7 +53,7 @@ python scripts/run_baseline.py --smoke                              # Week 6 smo
 python scripts/run_baseline.py --config configs/week7_data.yaml     # 720 episodes, about 4 minutes
 python scripts/train_monitor.py                                     # fits both monitors, writes results/summary/week7_monitor.csv
 python scripts/eval_monitor.py                                      # closed loop, 22 conditions x 2 layouts x 30 seeds
-python scripts/make_gif.py --config configs/week7_eval.yaml --conditions goal_blocker_blind goal_blocker_logistic --layout tiny_choke   # reroute GIF, needs a display
+python scripts/make_gif.py --config configs/week7_eval.yaml --conditions goal_blocker_blind goal_blocker_logistic --layout tiny_choke   # deadlock vs reroute GIFs, same seed, needs a display
 ```
 
 ## Limitations

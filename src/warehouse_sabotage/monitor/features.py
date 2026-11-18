@@ -150,14 +150,15 @@ def window_table(ep: pd.DataFrame, highways: np.ndarray, goals, window: int = 20
                  ends=None) -> pd.DataFrame:
     """One row per robot and window: robot_id, t_end (last step of the window) and the 12 features.
 
-    Windows are full-length and end at t = window - 1, window - 1 + stride, ... unless ``ends`` lists the end steps
+    Windows are full-length and end at t = window - 1, window - 1 + stride, ... but never on the last step of the
+    episode, because a live monitor only completes step t when it sees the state at t + 1; ``ends`` overrides this
     (the live monitor asks for the latest one). Label columns (is_saboteur, sabotage_window) are copied from the
     log when it has them, for training and evaluation only.
     """
     steps = step_table(ep, highways, goals)
     ep = ep.sort_values(["robot_id", "t"]).reset_index(drop=True)
     horizon = int(ep["t"].max()) + 1
-    ends = range(window - 1, horizon, stride) if ends is None else ends
+    ends = range(window - 1, horizon - 1, stride) if ends is None else ends
     rows = []
     for rid, s in steps.groupby("robot_id", sort=False):
         s = s.reset_index(drop=True)

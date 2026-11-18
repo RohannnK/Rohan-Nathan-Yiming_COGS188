@@ -71,7 +71,8 @@ class Navigator:
                   and (not self.cooperative or self.ctx.is_rogue(r.robot_id))]
         me = state.robots[self.rid]
         quarantined = frozenset(self.ctx.quarantine.values()) if self.cooperative else frozenset()
-        return (frozenset((r.x, r.y) for r in others) | quarantined) - {tuple(target), (me.x, me.y)}
+        # a target may be occupied by a robot, but never by a quarantined tile (except the one this robot stands on)
+        return (frozenset((r.x, r.y) for r in others) - {tuple(target)}) | (quarantined - {(me.x, me.y)})
 
     def hold(self, state: WarehouseState):
         """Stay put: reserve the current cell for the next few steps and drop the plan."""
