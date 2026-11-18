@@ -32,3 +32,24 @@ def episode(paths, actions=None, seed=1, saboteur=None, planned=None, **cols) ->
         df[k] = v
     df["carrying_shelf_id"] = df["carrying_shelf_id"].astype("Int16")
     return df
+
+
+def synthetic_runs(n_seeds=24, steps=120, seed=0) -> pd.DataFrame:
+    """Saboteur-vs-honest toy logs: honest robots shuttle along row 0 and row 9; the saboteur parks in a corridor
+    from t = 60 (sabotage_active) in the 'sabotage' run. The 'clean' run has the same seeds and four honest robots."""
+    rng = np.random.default_rng(seed)
+    eps = []
+    for s in range(n_seeds):
+        k = int(rng.integers(4))
+        lanes = [[(x, 0) for x in range(0, 10)] + [(x, 0) for x in range(9, -1, -1)] for _ in range(4)]
+        paths = [(lane * 10)[int(rng.integers(5)):][:steps] for lane in lanes]
+        for run, sab in (("sabotage", k), ("clean", None)):
+            p = [list(q) for q in paths]
+            if sab is not None:
+                p[sab] = p[sab][:60] + [(3, 5)] * (steps - 60)
+            df = episode(p, seed=1000 + s, saboteur=sab)
+            df["run_name"], df["condition"] = run, run
+            if sab is not None:
+                df.loc[(df["robot_id"] == sab) & (df["t"] >= 60), "sabotage_active"] = True
+            eps.append(df)
+    return pd.concat(eps, ignore_index=True)

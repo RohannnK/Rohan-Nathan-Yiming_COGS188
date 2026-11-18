@@ -37,7 +37,7 @@ class HonestAStarPolicy:
 
     def _others(self, state, honest: bool):
         return {(r.x, r.y) for r in state.robots
-                if r.robot_id != self.rid and (r.robot_id in self.ctx.honest_ids) == honest}
+                if r.robot_id != self.rid and (not self.ctx.is_rogue(r.robot_id)) == honest}
 
     def act(self, state: WarehouseState) -> int:
         self.nav.begin_step()

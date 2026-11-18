@@ -50,3 +50,23 @@ def test_planned_cells_start_with_next_tile():
     assert following.sum() > 50
     first = cur.loc[following, "planned_cells"].map(lambda p: tuple(p[0]))
     assert (first == list(zip(nxt.loc[following, "x"], nxt.loc[following, "y"]))).all()
+
+
+def test_week6_log_schema_has_week7_columns():
+    df = episode("goal_blocker", steps=60)
+    assert {"target_x", "target_y", "flagged"} <= set(df.columns) and not df["flagged"].any()
+    assert df.loc[df["is_saboteur"], "target_x"].notna().any()
+
+
+def test_monitor_flags_reach_the_log_and_the_planners(tmp_path):
+    from warehouse_sabotage.monitor.quarantine import save_monitor
+    from warehouse_sabotage.monitor.threshold import ThresholdRule
+
+    path = save_monitor(tmp_path / "rule.joblib", ThresholdRule(choke_limit=5, idle_limit=5), window=20, stride=10)
+    spec = {"run_name": "test", "condition": "c", "layout": "tiny_choke", "kind": "corridor_parker", "oracle": False,
+            "monitor": str(path), "env": {"max_steps": 200}}
+    df = rows_to_frame(run_episode(spec, 5))
+    flagged = df[df["flagged"]]
+    assert len(flagged) == 0 or flagged["t"].min() >= 20  # nothing can be flagged before the first full window
+    first = flagged.groupby("robot_id")["t"].min()
+    assert all(df[(df["robot_id"] == r) & (df["t"] >= t)]["flagged"].all() for r, t in first.items())  # permanent

@@ -12,6 +12,19 @@ def longest_gap(delivery_steps, horizon: int) -> int:
     return int(np.diff(edges).max() - 1)
 
 
+def flag_metrics(df: pd.DataFrame) -> dict:
+    """Closed-loop monitor outcome of one episode: first flag of the saboteur, honest robots flagged, honest robots."""
+    sab = df[df["is_saboteur"]]
+    active = sab.loc[sab["sabotage_active"], "t"]
+    flagged = df[df["flagged"]] if "flagged" in df else df.iloc[:0]  # logs written before Week 7 have no column
+    return {
+        "t_first_sabotage": float(active.min()) if len(active) else np.nan,
+        "t_flag_saboteur": float(flagged.loc[flagged["is_saboteur"], "t"].min()) if flagged["is_saboteur"].any() else np.nan,
+        "false_flags": int(flagged.loc[~flagged["is_saboteur"], "robot_id"].nunique()),
+        "honest_robots": int(df.loc[~df["is_saboteur"], "robot_id"].nunique()),
+    }
+
+
 def episode_metrics(df: pd.DataFrame, deadlock_L: int = 100) -> dict:
     """Metrics for one episode's rows."""
     horizon = int(df["t"].max()) + 1
@@ -33,6 +46,7 @@ def episode_metrics(df: pd.DataFrame, deadlock_L: int = 100) -> dict:
         "nodes_per_call": float(planned["nodes_expanded"].mean()) if len(planned) else np.nan,
         "replans": int(honest["replanned"].sum()),
         "sabotage_steps": int(df["sabotage_active"].sum()),
+        **flag_metrics(df),
     }
 
 
@@ -84,3 +98,24 @@ def detection_metrics(flags: pd.DataFrame) -> dict:
     return {"saboteur_episodes": len(sab), "detection_rate": float(sab["t_flag"].notna().mean()),
             "ttd_mean": float(ttd.mean()), "ttd_std": float(ttd.std()),
             "honest_robot_episodes": len(honest), "false_positive_rate": float(honest["t_flag"].notna().mean())}
+
+
+def monitor_summary(episodes: pd.DataFrame, horizon: int = 500) -> pd.DataFrame:
+    """Per (condition, layout): detection rate, TTD (never flagged counts as horizon - t_first_sabotage), robot-episode FPR."""
+    rows = []
+    for (cond, layout), g in episodes.groupby(["condition", "layout"], sort=False):
+        sab = g[g["t_first_sabotage"].notna()]
+        ttd = sab["t_flag_saboteur"].fillna(horizon) - sab["t_first_sabotage"]
+        rows.append({"condition": cond, "layout": layout, "episodes": len(g),
+                     "detection_rate": sab["t_flag_saboteur"].notna().mean() if len(sab) else np.nan,
+                     "ttd_mean": ttd.mean() if len(sab) else np.nan, "ttd_std": ttd.std() if len(sab) else np.nan,
+                     "false_positive_rate": g["false_flags"].sum() / g["honest_robots"].sum()})
+    return pd.DataFrame(rows)
+
+
+def monitor_report(windows: pd.DataFrame, score, tau: float, persist: int = 1) -> dict:
+    """Window metrics for both labels plus detection metrics, for one monitor on one set of windows (e.g. the test split)."""
+    flagged = np.asarray(score) > tau
+    out = {f"{label}_{k}": v for label in ("robot", "window")
+           for k, v in window_metrics(windows["is_saboteur" if label == "robot" else "sabotage_window"], score, flagged).items()}
+    return {**out, **detection_metrics(first_flag(windows.assign(flag=flagged), persist=persist))}

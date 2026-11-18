@@ -42,3 +42,13 @@ python scripts/make_gif.py --conditions no_saboteur goal_blocker --layout tiny_c
 ```
 
 Episode logs go to `data/episodes/` (parquet, gitignored), per-run episode metrics to `results/<run_name>/episodes.csv`, and condition summaries to `results/summary/`. Results and observations: `docs/week6_results.md`.
+
+## Running the Week 7 monitor
+
+```bash
+python scripts/run_baseline.py --config configs/week7_data.yaml   # episode logs for the monitor (blind fleet, seeds 2000+)
+python scripts/train_monitor.py                                    # windows, split by seed, threshold + logistic monitors
+python scripts/eval_monitor.py                                     # closed loop on seeds 3000+: throughput retained, TTD, FPR
+```
+
+Models are saved to `data/models/` (gitignored). Design notes and open items: `docs/week7_results.md`.

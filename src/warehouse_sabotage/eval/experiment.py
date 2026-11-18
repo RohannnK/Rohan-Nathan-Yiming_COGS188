@@ -31,10 +31,12 @@ def episode_specs(cfg: dict, smoke: bool = False):
         env["max_steps"] = cfg["smoke"]["max_steps"]
         name += "_smoke"
     for condition, kind in cfg["conditions"].items():
+        opts = kind if isinstance(kind, dict) else {"kind": kind}  # {kind, oracle, monitor} or just the kind
         for layout in cfg["layouts"]:
             yield {
                 "run_name": f"{name}__{condition}__{layout}", "condition": condition, "layout": layout,
-                "kind": kind, "env": env, "planner": cfg.get("planner", {}), "saboteur": cfg.get("saboteur", {}),
+                "kind": opts["kind"], "oracle": opts.get("oracle", True), "monitor": opts.get("monitor"),
+                "env": env, "planner": cfg.get("planner", {}), "saboteur": cfg.get("saboteur", {}),
             }, seeds
 
 
