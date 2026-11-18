@@ -47,8 +47,11 @@ Episode logs go to `data/episodes/` (parquet, gitignored), per-run episode metri
 
 ```bash
 python scripts/run_baseline.py --config configs/week7_data.yaml   # episode logs for the monitor (blind fleet, seeds 2000+)
-python scripts/train_monitor.py                                    # windows, split by seed, threshold + logistic monitors
-python scripts/eval_monitor.py                                     # closed loop on seeds 3000+: throughput retained, TTD, FPR
+python scripts/train_monitor.py                                    # Version 1: windows, split by seed, threshold + logistic monitors
+python scripts/eval_monitor.py                                     # Version 1 closed loop on seeds 3000+: throughput retained, TTD, FPR
+python scripts/train_monitor.py --selection episode --suffix _v2   # Version 2: tau and persistence chosen by robot-episode FPR
+python scripts/eval_monitor.py --config configs/week7_eval_v2.yaml # Version 2 closed loop on seeds 3100+
+python scripts/paired_analysis.py                                  # paired delivery differences with bootstrap intervals (no simulation)
 ```
 
-Models are saved to `data/models/` (gitignored). Design notes and open items: `docs/week7_results.md`.
+Models are saved to `data/models/` (gitignored). Results, both versions and open items: `docs/week7_results.md`.

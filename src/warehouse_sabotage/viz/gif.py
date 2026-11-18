@@ -1,6 +1,7 @@
 """Optional rendering of episodes to GIF (rware renderer). Needs pyglet 1.x and a display; never import in tests.
 
-The saboteur's cell is outlined in red, since rware draws every robot the same way.
+The saboteur's cell is outlined in red, since rware draws every robot the same way. A robot the monitor has flagged
+is outlined in yellow (outside the red box when it is the saboteur), so the frame where detection happens is visible.
 """
 from __future__ import annotations
 
@@ -14,11 +15,11 @@ from ..eval.rollout import run_episode
 CELL = 31  # rware Viewer: 30 px cells plus 1 px grid lines
 
 
-def outline(frame: np.ndarray, x: int, y: int, cols: int, colour=(220, 30, 30)) -> np.ndarray:
-    """Draw a box around grid cell (x, y). Frames may be HiDPI-scaled (2x on Retina Macs)."""
+def outline(frame: np.ndarray, x: int, y: int, cols: int, colour=(220, 30, 30), inset: int = 0) -> np.ndarray:
+    """Draw a box around grid cell (x, y), ``inset`` pixels inside the cell edge. Frames may be HiDPI-scaled (2x on Retina Macs)."""
     s = frame.shape[1] // (1 + cols * CELL)
     frame = frame.copy()
-    top, left, size = s * (CELL * y + 1), s * (CELL * x + 1), s * (CELL - 1)
+    top, left, size = s * (CELL * y + 1 + inset), s * (CELL * x + 1 + inset), s * (CELL - 1 - 2 * inset)
     for d in range(2 * s):
         frame[top + d, left:left + size] = colour
         frame[top + size - 1 - d, left:left + size] = colour
@@ -37,9 +38,12 @@ def record_gif(spec: dict, seed: int, path: Path | str, every: int = 2, max_fram
             frame = w.render(mode="rgb_array")
             # pyglet 1.5 on macOS raises when a window is closed outside its event loop; leave it to process exit.
             w.renderer.close = lambda: None
+            for rid in (env.flag_hook() if env.flag_hook is not None else ()):
+                a = w.agents[rid]
+                frame = outline(frame, a.x, a.y, w.grid_size[1], colour=(240, 200, 0))
             if env.saboteur_id is not None:
                 a = w.agents[env.saboteur_id]
-                frame = outline(frame, a.x, a.y, w.grid_size[1])
+                frame = outline(frame, a.x, a.y, w.grid_size[1], inset=2)
             hidpi = frame.shape[1] // (1 + w.grid_size[1] * CELL)
             frames.append(frame[::hidpi, ::hidpi])
         step[0] += 1

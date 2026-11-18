@@ -122,3 +122,22 @@ def monitor_report(windows: pd.DataFrame, score, tau: float, persist: int = 1) -
     out = {f"{label}_{k}": v for label in ("robot", "window")
            for k, v in window_metrics(windows["is_saboteur" if label == "robot" else "sabotage_window"], score, flagged).items()}
     return {**out, **detection_metrics(first_flag(windows.assign(flag=flagged), persist=persist))}
+
+
+def paired_difference(episodes: pd.DataFrame, treatment: str, control: str, column: str = "deliveries",
+                      resamples: int = 10000, seed: int = 0) -> pd.DataFrame:
+    """Per layout: mean of (treatment - control) over episode seeds, with a seeded bootstrap 95% interval.
+
+    ``episodes`` holds one row per episode (condition, layout, episode_seed, column). Seeds are shared by every
+    condition, so the two conditions are paired on episode_seed; seeds missing from either condition are dropped.
+    """
+    rng, rows = np.random.default_rng(seed), []
+    for layout, g in episodes.groupby("layout", sort=False):
+        pick = lambda c: g[g["condition"] == c].set_index("episode_seed")[column]
+        a, b = pick(treatment), pick(control)
+        d = (a - b.reindex(a.index)).dropna().to_numpy(float)
+        boot = rng.choice(d, (resamples, len(d))).mean(axis=1)
+        rows.append({"treatment": treatment, "control": control, "layout": layout, "episodes": len(d),
+                     "mean_diff": d.mean(), "ci_low": np.percentile(boot, 2.5), "ci_high": np.percentile(boot, 97.5),
+                     "share_improved": float((d > 0).mean())})
+    return pd.DataFrame(rows)
