@@ -10,6 +10,7 @@ from ..agents.saboteur_scripted import BEHAVIOURS
 from ..env.make_env import make_env
 from ..env.reward_wrapper import SabotageRewardWrapper
 from ..env.state import extract_state
+from ..monitor.quarantine import load_monitor
 
 
 def run_episode(spec: dict, seed: int, on_step: Callable | None = None) -> list[dict]:
@@ -19,17 +20,24 @@ def run_episode(spec: dict, seed: int, on_step: Callable | None = None) -> list[
     it should occupy at t+1; it is empty for saboteur, parked and random robots and for honest robots holding still.
 
     spec keys: run_name, condition, layout, kind ('random', 'honest', 'parked' or a saboteur behaviour),
-    env (make_env kwargs), planner, saboteur. ``on_step(env)`` is called after reset and after every step.
+    env (make_env kwargs), planner, saboteur; optional oracle (default True, Week 6) and monitor (path of a saved
+    monitor, see monitor/quarantine.py). ``on_step(env)`` is called after reset and after every step.
+
+    ``target_x``/``target_y`` hold the robot's current planner target (NaN without one); ``flagged`` is True from the
+    step the monitor has flagged the robot.
     """
     kind = spec["kind"]
     has_saboteur = kind in BEHAVIOURS
-    env = SabotageRewardWrapper(make_env({**spec.get("env", {}), "layout": spec["layout"]}), has_saboteur)
+    monitor = load_monitor(spec["monitor"]) if spec.get("monitor") else None
+    env = SabotageRewardWrapper(make_env({**spec.get("env", {}), "layout": spec["layout"]}), has_saboteur,
+                                (lambda: fleet.monitor.flagged()) if monitor else None)
     _, info = env.reset(seed=seed)
     w = env.unwrapped
     n = len(w.agents)
     rngs = [np.random.default_rng(s) for s in np.random.SeedSequence(seed).spawn(n + 1)]
     special = info["saboteur_id"] if has_saboteur else int(rngs[n].integers(n)) if kind == "parked" else None
-    fleet = build_fleet(kind, n, special, spec.get("planner", {}), spec.get("saboteur", {}))
+    fleet = build_fleet(kind, n, special, spec.get("planner", {}), spec.get("saboteur", {}),
+                        spec.get("oracle", True), monitor)
     state = extract_state(w, 0)
     fleet.reset(state, rngs[:n])
     if on_step:
@@ -45,6 +53,7 @@ def run_episode(spec: dict, seed: int, on_step: Callable | None = None) -> list[
         requested = set(state.requested_shelf_ids)
         for r, a, d in zip(state.robots, actions, debug):
             i = r.robot_id
+            target = d.get("target")
             rows.append({
                 "run_name": spec["run_name"], "condition": spec["condition"], "layout": spec["layout"],
                 "saboteur_behaviour": behaviour, "episode_seed": seed, "t": state.t, "robot_id": i,
@@ -58,6 +67,8 @@ def run_episode(spec: dict, seed: int, on_step: Callable | None = None) -> list[
                 "plan_len": d["plan_len"], "plan_ms": d["plan_ms"], "nodes_expanded": d["nodes_expanded"],
                 "replanned": bool(d["replanned"]), "reward": rewards[i],
                 "planned_cells": [list(c) for c in d.get("planned_cells", [])],
+                "target_x": None if target is None else target[0], "target_y": None if target is None else target[1],
+                "flagged": i in fleet.ctx.flagged,
             })
         state = extract_state(w, state.t + 1)
         if on_step:

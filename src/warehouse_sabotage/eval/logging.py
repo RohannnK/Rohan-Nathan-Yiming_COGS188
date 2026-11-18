@@ -12,7 +12,7 @@ DTYPES = {
     "on_highway": "bool", "on_chokepoint": "bool", "action": "int8", "moved": "bool", "delivered": "bool",
     "picked_up": "bool", "dropped": "bool", "sabotage_active": "bool", "task_phase": "string",
     "plan_len": "float32", "plan_ms": "float32", "nodes_expanded": "float32", "replanned": "bool",
-    "reward": "float32",
+    "reward": "float32", "target_x": "Int8", "target_y": "Int8", "flagged": "bool",
 }
 
 

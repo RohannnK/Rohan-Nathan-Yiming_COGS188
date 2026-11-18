@@ -50,3 +50,54 @@ def test_planned_cells_start_with_next_tile():
     assert following.sum() > 50
     first = cur.loc[following, "planned_cells"].map(lambda p: tuple(p[0]))
     assert (first == list(zip(nxt.loc[following, "x"], nxt.loc[following, "y"]))).all()
+
+
+def test_week6_log_schema_has_week7_columns():
+    df = episode("goal_blocker", steps=60)
+    assert {"target_x", "target_y", "flagged"} <= set(df.columns) and not df["flagged"].any()
+    assert df.loc[df["is_saboteur"], "target_x"].notna().any()
+
+
+def test_monitor_flags_reach_the_log_and_the_planners(tmp_path):
+    from warehouse_sabotage.monitor.quarantine import save_monitor
+    from warehouse_sabotage.monitor.threshold import ThresholdRule
+
+    path = save_monitor(tmp_path / "rule.joblib", ThresholdRule(choke_limit=5, idle_limit=5), window=20, stride=10)
+    spec = {"run_name": "test", "condition": "c", "layout": "tiny_choke", "kind": "corridor_parker", "oracle": False,
+            "monitor": str(path), "env": {"max_steps": 200}}
+    df = rows_to_frame(run_episode(spec, 5))
+    flagged = df[df["flagged"]]
+    assert len(flagged) == 0 or flagged["t"].min() >= 20  # nothing can be flagged before the first full window
+    first = flagged.groupby("robot_id")["t"].min()
+    assert all(df[(df["robot_id"] == r) & (df["t"] >= t)]["flagged"].all() for r, t in first.items())  # permanent
+
+
+def test_online_monitor_rows_match_the_episode_logger(monkeypatch):
+    """Parity of the events the live monitor infers from states with the events the simulator logged."""
+    import numpy as np
+    import pandas as pd
+
+    from warehouse_sabotage.eval import rollout
+    from warehouse_sabotage.monitor.quarantine import QuarantineMonitor
+
+    class Silent:
+        tau = 2.0
+        def score(self, w):
+            return np.zeros(len(w))
+
+    made = []
+    monkeypatch.setattr(rollout, "load_monitor", lambda path: made.append(QuarantineMonitor(Silent())) or made[-1])
+    spec = {"run_name": "test", "condition": "c", "layout": "tiny_choke", "kind": "honest", "oracle": False,
+            "monitor": "unused", "env": {"max_steps": 150}}
+    log = rows_to_frame(run_episode(spec, 5))  # honest fleet, seed 5: the Week 6 tests show it delivers within 150 steps
+    online = pd.DataFrame(made[0].rows)
+    both = log.merge(online, on=["t", "robot_id"], suffixes=("", "_on"))
+    assert len(both) == len(online) == 4 * log["t"].max()  # the last step never gets a successor state
+    for col in ("x", "y", "action", "moved", "picked_up", "dropped", "delivered", "carrying_requested",
+                "on_chokepoint", "on_highway"):
+        assert (both[col] == both[col + "_on"]).all(), col
+    assert both[["delivered", "picked_up", "dropped"]].sum().min() > 0  # the episode must exercise every event
+    assert (both["planned_cells"].map(lambda c: [list(p) for p in c]) == both["planned_cells_on"].map(
+        lambda c: [list(p) for p in c])).all()
+    for k in ("target_x", "target_y"):
+        assert (both[k].fillna(-1).astype(int) == both[k + "_on"].fillna(-1).astype(int)).all()

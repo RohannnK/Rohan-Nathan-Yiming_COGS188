@@ -24,6 +24,12 @@ class FleetContext:
     board: TaskBoard = field(default_factory=TaskBoard)
     plans: dict = field(default_factory=dict)  # honest robot -> remaining planned cells
     flagged: frozenset[int] = frozenset()  # monitor output (Week 7); treated as obstacles
+    oracle: bool = True  # honest planners know who is not honest from the start (Week 6); False: only the monitor tells
+    quarantine: dict = field(default_factory=dict)  # flagged robot -> tile it stood on when flagged, blocked for good
+
+    def is_rogue(self, rid: int) -> bool:
+        """Does the honest fleet treat this robot as an obstacle rather than a cooperating robot?"""
+        return rid in self.flagged or (self.oracle and rid not in self.honest_ids)
 
 
 class Navigator:
@@ -62,8 +68,11 @@ class Navigator:
 
     def obstacles(self, state: WarehouseState, target) -> frozenset:
         others = [r for r in state.robots if r.robot_id != self.rid
-                  and (not self.cooperative or r.robot_id not in self.ctx.honest_ids or r.robot_id in self.ctx.flagged)]
-        return frozenset((r.x, r.y) for r in others) - {tuple(target)}
+                  and (not self.cooperative or self.ctx.is_rogue(r.robot_id))]
+        me = state.robots[self.rid]
+        quarantined = frozenset(self.ctx.quarantine.values()) if self.cooperative else frozenset()
+        # a target may be occupied by a robot, but never by a quarantined tile (except the one this robot stands on)
+        return (frozenset((r.x, r.y) for r in others) - {tuple(target)}) | (quarantined - {(me.x, me.y)})
 
     def hold(self, state: WarehouseState):
         """Stay put: reserve the current cell for the next few steps and drop the plan."""
@@ -124,4 +133,4 @@ class Navigator:
 
     def debug(self) -> dict:
         return {"plan_len": len(self.actions), "plan_ms": self.plan_ms,
-                "nodes_expanded": self.nodes, "replanned": self.replanned}
+                "nodes_expanded": self.nodes, "replanned": self.replanned, "target": self.target}

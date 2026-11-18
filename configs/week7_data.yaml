@@ -1,0 +1,39 @@
+# Week 7 monitor data: blind fleet (oracle: false), no monitor. Seeds 2000+ are disjoint from Week 6 (1000 to 1029).
+name: week7_data
+env:
+  n_agents: 4
+  max_steps: 500
+  sensor_range: 1
+layouts: [tiny, tiny_choke]
+# No delivery for L consecutive steps counts as a deadlock. Chosen after seeing Week 6 data: the 95th percentile
+# (rounded) of the longest no-delivery gap per episode in no_saboteur, per layout (30 episodes each).
+deadlock_L: {tiny: 26, tiny_choke: 30}
+
+# condition name -> fleet kind, or {kind, oracle, monitor}; oracle false: honest planners do not know the saboteur
+conditions:
+  no_saboteur: honest
+  idle_robot: {kind: parked, oracle: false}
+  goal_blocker: {kind: goal_blocker, oracle: false}
+  corridor_parker: {kind: corridor_parker, oracle: false}
+  shelf_hider: {kind: shelf_hider, oracle: false}
+  shelf_squatter: {kind: shelf_squatter, oracle: false}
+
+planner:
+  horizon: 32        # space-time A* horizon, then spatial A*
+  replan_every: 8    # K
+  stuck_limit: 6     # steps without moving before a randomised yield is considered
+  yield_prob: 0.5
+
+saboteur:
+  common:
+    camouflage: 0.2  # per-step probability of an honest-looking cover action
+  goal_blocker: {block_distance: 5}
+  corridor_parker: {park_steps: 15, lookahead: 12}
+  shelf_hider: {cooldown: 20}
+
+# 60 seeds x (2 negative + 4 saboteur conditions) x 2 layouts = 720 episodes, 480 with a saboteur.
+seeds: [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035, 2036, 2037, 2038, 2039, 2040, 2041, 2042, 2043, 2044, 2045, 2046, 2047, 2048, 2049, 2050, 2051, 2052, 2053, 2054, 2055, 2056, 2057, 2058, 2059]
+
+smoke:
+  episodes: 2
+  max_steps: 100

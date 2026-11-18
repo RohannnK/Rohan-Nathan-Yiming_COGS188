@@ -1,0 +1,58 @@
+# Week 7 closed-loop evaluation, Version 2: fresh seeds 3100-3129, monitors from `train_monitor.py --selection episode --suffix _v2`.
+# Version 1 (seeds 3000-3029, week7_eval.yaml) is kept unchanged. Neither seed range was used to fit or tune a monitor,
+# but Version 2 was designed after seeing Version 1, so it is an independent re-check, not a second blind test.
+# <behaviour>_oracle: Week 6 fleet (knows the saboteur); _blind: no monitor; _threshold / _logistic: blind until flagged.
+# Needs data/models/{threshold,logistic}_v2.joblib.
+name: week7_eval_v2
+env:
+  n_agents: 4
+  max_steps: 500
+  sensor_range: 1
+layouts: [tiny, tiny_choke]
+# No delivery for L consecutive steps counts as a deadlock. Chosen after seeing Week 6 data: the 95th percentile
+# (rounded) of the longest no-delivery gap per episode in no_saboteur, per layout (30 episodes each).
+deadlock_L: {tiny: 26, tiny_choke: 30}
+
+# condition name -> fleet kind, or {kind, oracle, monitor}
+conditions:
+  no_saboteur: honest
+  no_saboteur_threshold: {kind: honest, monitor: data/models/threshold_v2.joblib}
+  no_saboteur_logistic: {kind: honest, monitor: data/models/logistic_v2.joblib}
+  idle_robot_blind: {kind: parked, oracle: false}
+  idle_robot_threshold: {kind: parked, oracle: false, monitor: data/models/threshold_v2.joblib}
+  idle_robot_logistic: {kind: parked, oracle: false, monitor: data/models/logistic_v2.joblib}
+  goal_blocker_oracle: {kind: goal_blocker}
+  goal_blocker_blind: {kind: goal_blocker, oracle: false}
+  goal_blocker_threshold: {kind: goal_blocker, oracle: false, monitor: data/models/threshold_v2.joblib}
+  goal_blocker_logistic: {kind: goal_blocker, oracle: false, monitor: data/models/logistic_v2.joblib}
+  corridor_parker_oracle: {kind: corridor_parker}
+  corridor_parker_blind: {kind: corridor_parker, oracle: false}
+  corridor_parker_threshold: {kind: corridor_parker, oracle: false, monitor: data/models/threshold_v2.joblib}
+  corridor_parker_logistic: {kind: corridor_parker, oracle: false, monitor: data/models/logistic_v2.joblib}
+  shelf_hider_oracle: {kind: shelf_hider}
+  shelf_hider_blind: {kind: shelf_hider, oracle: false}
+  shelf_hider_threshold: {kind: shelf_hider, oracle: false, monitor: data/models/threshold_v2.joblib}
+  shelf_hider_logistic: {kind: shelf_hider, oracle: false, monitor: data/models/logistic_v2.joblib}
+  shelf_squatter_oracle: {kind: shelf_squatter}
+  shelf_squatter_blind: {kind: shelf_squatter, oracle: false}
+  shelf_squatter_threshold: {kind: shelf_squatter, oracle: false, monitor: data/models/threshold_v2.joblib}
+  shelf_squatter_logistic: {kind: shelf_squatter, oracle: false, monitor: data/models/logistic_v2.joblib}
+
+planner:
+  horizon: 32        # space-time A* horizon, then spatial A*
+  replan_every: 8    # K
+  stuck_limit: 6     # steps without moving before a randomised yield is considered
+  yield_prob: 0.5
+
+saboteur:
+  common:
+    camouflage: 0.2  # per-step probability of an honest-looking cover action
+  goal_blocker: {block_distance: 5}
+  corridor_parker: {park_steps: 15, lookahead: 12}
+  shelf_hider: {cooldown: 20}
+
+seeds: [3100, 3101, 3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115, 3116, 3117, 3118, 3119, 3120, 3121, 3122, 3123, 3124, 3125, 3126, 3127, 3128, 3129]
+
+smoke:
+  episodes: 2
+  max_steps: 100
