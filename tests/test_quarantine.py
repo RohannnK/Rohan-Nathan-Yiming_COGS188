@@ -135,8 +135,20 @@ def test_quarantined_goal_is_not_chosen_as_target():
 
 
 def test_fleet_never_enters_quarantined_tiles_even_if_every_goal_is_quarantined():
-    _, route = first_route(oracle=False, saboteur=(6, 5), quarantine={1: (4, 10), 2: (5, 10)}, start=(4, 8))
-    assert (4, 10) not in route and (5, 10) not in route
+    fleet, route = first_route(oracle=False, saboteur=(6, 5), quarantine={1: (4, 10), 2: (5, 10)}, start=(4, 8))
+    assert route == [] and fleet.policies[0].nav.target is None  # no safe goal: wait instead of aiming at one
+
+
+def test_robot_waits_when_every_return_slot_is_quarantined():
+    def fleet_for(quarantine):
+        fleet = build_fleet("parked", 4, 1, {}, {}, oracle=False)
+        fleet.ctx.quarantine.update(quarantine)
+        # robot 0 carries the unrequested shelf 5, which leaves exactly one empty slot: its home slot
+        s = state(0, [(3, 2, 5), (6, 5, None), (0, 9, None), (9, 9, None)], requested=(0,))
+        fleet.reset(s, [np.random.default_rng(i) for i in range(4)])
+        fleet.act(s)
+        return fleet.policies[0].debug_info()["planned_cells"]
+    assert fleet_for({}) and fleet_for({1: SLOTS[5]}) == []
 
 
 def test_quarantined_tile_can_be_left_by_a_robot_standing_on_it():

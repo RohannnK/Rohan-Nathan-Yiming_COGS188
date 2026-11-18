@@ -75,12 +75,11 @@ class HonestAStarPolicy:
             board.shelf.pop(rid, None)
             if me.carrying_shelf_id in req:
                 self.phase = "to_goal"
-                options = [g for g in state.goals if g not in rogue_tiles] or list(state.goals)
+                options = [g for g in state.goals if g not in rogue_tiles] or self._not_quarantined(state.goals)
                 toggle = False
             else:
                 self.phase = "return_shelf"
-                slots = empty_slots(state)
-                options = [s for s in slots if s not in self.ctx.quarantine.values()] or slots
+                options = self._not_quarantined(empty_slots(state))
                 toggle = True
         else:
             sid = board.shelf.get(rid)
@@ -94,8 +93,7 @@ class HonestAStarPolicy:
                 self.phase = "to_shelf"
                 return state.shelf_positions[sid], True
             self.phase = "idle"
-            parking = parking_tiles(state)
-            options = [p for p in parking if p not in self.ctx.quarantine.values()] or parking
+            options = self._not_quarantined(parking_tiles(state))
             toggle = False
             if (me.x, me.y) in options:
                 board.tile[rid] = (me.x, me.y)
@@ -106,6 +104,11 @@ class HonestAStarPolicy:
         if target not in options:
             target = board.claim_tile(rid, state, options, loaded)
         return target, toggle
+
+    def _not_quarantined(self, tiles) -> list:
+        """Candidate tiles without quarantined ones; empty means no target, so the robot waits."""
+        blocked = set(self.ctx.quarantine.values())
+        return [t for t in tiles if t not in blocked]
 
     def _start_yield(self, state, loaded) -> bool:
         """Randomised yield: step aside to a random free neighbour, then wait 0-2 steps."""

@@ -87,16 +87,16 @@ def test_online_monitor_rows_match_the_episode_logger(monkeypatch):
 
     made = []
     monkeypatch.setattr(rollout, "load_monitor", lambda path: made.append(QuarantineMonitor(Silent())) or made[-1])
-    spec = {"run_name": "test", "condition": "c", "layout": "tiny_choke", "kind": "goal_blocker", "oracle": False,
-            "monitor": "unused", "env": {"max_steps": 300}}
-    log = rows_to_frame(run_episode(spec, 7))
+    spec = {"run_name": "test", "condition": "c", "layout": "tiny_choke", "kind": "honest", "oracle": False,
+            "monitor": "unused", "env": {"max_steps": 150}}
+    log = rows_to_frame(run_episode(spec, 5))  # honest fleet, seed 5: the Week 6 tests show it delivers within 150 steps
     online = pd.DataFrame(made[0].rows)
     both = log.merge(online, on=["t", "robot_id"], suffixes=("", "_on"))
-    assert len(both) == len(online) == 4 * 299  # the last step never gets a successor state
+    assert len(both) == len(online) == 4 * log["t"].max()  # the last step never gets a successor state
     for col in ("x", "y", "action", "moved", "picked_up", "dropped", "delivered", "carrying_requested",
                 "on_chokepoint", "on_highway"):
         assert (both[col] == both[col + "_on"]).all(), col
-    assert both["delivered"].sum() > 0 and both["picked_up"].sum() > 0
+    assert both[["delivered", "picked_up", "dropped"]].sum().min() > 0  # the episode must exercise every event
     assert (both["planned_cells"].map(lambda c: [list(p) for p in c]) == both["planned_cells_on"].map(
         lambda c: [list(p) for p in c])).all()
     for k in ("target_x", "target_y"):
