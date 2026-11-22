@@ -26,9 +26,10 @@ run_dir = Path("results") / (f"{cfg['name']}_smoke" if args.smoke else cfg["name
 if args.report:
     curves = pd.concat([pd.read_csv(f) for f in sorted(run_dir.glob("curves_seed_*.csv"))], ignore_index=True)
     summary, astar, noop = dqn_report(cfg, curves)
-    Path("results/summary").mkdir(parents=True, exist_ok=True)
-    summary.to_csv(f"results/summary/{cfg['name']}.csv", index=False)
-    plot_dqn_progress(curves, astar, noop, Path("docs/media") / f"{cfg['name']}_progress.png")
+    table_dir, fig_dir = (run_dir, run_dir) if args.smoke else (Path("results/summary"), Path("docs/media"))
+    table_dir.mkdir(parents=True, exist_ok=True)
+    summary.to_csv(table_dir / f"{cfg['name']}.csv", index=False)
+    plot_dqn_progress(curves, astar, noop, fig_dir / f"{cfg['name']}_progress.png")
     print(summary.round(3).to_string(index=False))
 else:
     for seed in [args.seed] if args.seed is not None else cfg["seeds"]:
