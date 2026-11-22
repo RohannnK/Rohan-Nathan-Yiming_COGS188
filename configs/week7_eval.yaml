@@ -41,6 +41,7 @@ planner:
   replan_every: 8    # K
   stuck_limit: 6     # steps without moving before a randomised yield is considered
   yield_prob: 0.5
+  quarantine_steps: null  # Week 7 design: the flagged tile stays blocked for the episode (no longer the default)
 
 saboteur:
   common:

@@ -32,9 +32,9 @@ class Flagging:
     def flagged(self): return self.ids
 
 
-def first_route(oracle, monitor=None, saboteur=(3, 5), quarantine=None, start=(3, 2)):
+def first_route(oracle, monitor=None, saboteur=(3, 5), quarantine=None, start=(3, 2), planner=None):
     """Honest robot 0 carries a requested shelf from ``start`` to a goal; robot 1 is the (parked) saboteur."""
-    fleet = build_fleet("parked", 4, 1, {}, {}, oracle=oracle, monitor=monitor)
+    fleet = build_fleet("parked", 4, 1, planner or {}, {}, oracle=oracle, monitor=monitor)
     if quarantine:
         fleet.ctx.quarantine.update(quarantine)
     s = state(0, [(*start, 0), (*saboteur, None), (0, 9, None), (9, 9, None)])
@@ -55,10 +55,26 @@ def test_blind_fleet_drives_into_the_saboteur():
 
 def test_detection_changes_the_honest_route():
     _, blind = first_route(oracle=False)
-    fleet, flagged = first_route(oracle=False, monitor=Flagging({1}))
+    fleet, flagged = first_route(oracle=False, monitor=Flagging({1}), planner={"quarantine_steps": None})
     assert (3, 5) in blind and (3, 5) not in flagged and flagged != blind
     assert fleet.ctx.quarantine == {1: (3, 5)}
     assert flagged[-1] != (3, 2)  # still has a route to follow
+
+
+def test_quarantine_is_off_by_default_and_still_routes_around_the_flagged_robot():
+    fleet, route = first_route(oracle=False, monitor=Flagging({1}))
+    assert route and (3, 5) not in route
+    assert fleet.ctx.quarantine == {}
+
+
+def test_timed_quarantine_expires():
+    fleet, _ = first_route(oracle=False, monitor=Flagging({1}), planner={"quarantine_steps": 5})
+    assert fleet.ctx.quarantine == {1: (3, 5)}
+    later = state(5, [(3, 2, 0), (6, 5, None), (0, 9, None), (9, 9, None)])
+    fleet.act(later)
+    assert fleet.ctx.quarantine == {}
+    fleet.act(state(6, [(3, 2, 0), (3, 5, None), (0, 9, None), (9, 9, None)]))
+    assert fleet.ctx.quarantine == {}  # an expired quarantine is not renewed by the standing flag
 
 
 def test_quarantined_tile_stays_blocked_after_the_saboteur_leaves():

@@ -189,6 +189,10 @@ python scripts/make_gif.py --config configs/week7_eval_v2.yaml --conditions shel
 
 The saboteur is outlined in red and a robot the monitor has flagged gets a yellow outline outside it. In the two logistic GIFs the yellow outline first appears at about step 52 (`shelf_squatter`) and step 48 (`goal_blocker`); the blind GIFs have none. The `goal_blocker` GIFs hold fewer frames (138 blind, 105 logistic) than the 150 of the other two. This is not an early end of the episode: the frames of each GIF sum to the same total playing time (about 18 s), because the GIF writer merges identical consecutive frames and the `goal_blocker` scenes stand still for long stretches. The evaluation itself is unaffected: all 44 condition and layout runs (30 episodes each) ran the full 500 steps.
 
+## Follow-up (after Week 8)
+
+The `goal_blocker` result was traced to the permanent quarantine and fixed: see `docs/week7_quarantine.md`. Quarantine is now off by default (`planner.quarantine_steps: 0`; the flagged robot is still avoided at its current tile). The Week 7 configs set `quarantine_steps: null`, so the numbers in this note still reproduce.
+
 ## Not yet done
 
 - Intervals describe these 30 seeds per cell only. There is no correction for the many comparisons in the tables, and the bootstrap treats the 30 seeds as independent draws.
