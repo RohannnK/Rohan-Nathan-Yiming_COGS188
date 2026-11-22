@@ -37,7 +37,33 @@ TINY_CHOKE = """
 xxxxggxxxx
 """
 
-LAYOUTS = {"tiny": TINY, "tiny_choke": TINY_CHOKE}
+# Identical to rware's stock small map (shelf_columns=3, shelf_rows=2, column_height=8), 20 x 10. Its top shelf block
+# already has four 1-wide vertical corridors (x=0, 3, 6, 9, rows 1-8); the bottom block is open like tiny. Used from
+# Week 8 on.
+SMALL = """
+..........
+.xx.xx.xx.
+.xx.xx.xx.
+.xx.xx.xx.
+.xx.xx.xx.
+.xx.xx.xx.
+.xx.xx.xx.
+.xx.xx.xx.
+.xx.xx.xx.
+..........
+.xx....xx.
+.xx....xx.
+.xx....xx.
+.xx....xx.
+.xx....xx.
+.xx....xx.
+.xx....xx.
+.xx....xx.
+..........
+....gg....
+"""
+
+LAYOUTS = {"tiny": TINY, "tiny_choke": TINY_CHOKE, "small": SMALL}
 
 
 def parse_layout(layout: str) -> tuple[np.ndarray, tuple[tuple[int, int], ...]]:

@@ -28,7 +28,7 @@ def test_layout_loads_in_rware(name):
     assert tuple(w.goals) == goals == ((4, 10), (5, 10))
 
 
-@pytest.mark.parametrize("name", ["tiny", "tiny_choke"])
+@pytest.mark.parametrize("name", ["tiny", "tiny_choke", "small"])
 def test_removing_any_chokepoint_keeps_highways_connected(name):
     highways, goals = parse_layout(LAYOUTS[name])
     g = highway_graph(highways)
@@ -47,3 +47,20 @@ def test_chokepoints_include_goal_access_tiles():
     stock = chokepoints(*parse_layout(LAYOUTS["tiny"]))
     assert {(4, 9), (5, 9), (3, 10), (6, 10)} <= stock
     assert (4, 5) not in stock  # open middle band
+
+
+def test_small_layout_matches_rware_stock_small():
+    import gymnasium as gym
+
+    stock = gym.make("rware-small-4ag-v2", disable_env_checker=True).unwrapped
+    stock.reset(seed=0)
+    env = make_env({"layout": "small"})
+    env.reset(seed=0)
+    w = env.unwrapped
+    highways, goals = parse_layout(LAYOUTS["small"])
+    assert w.grid_size == stock.grid_size == (20, 10)
+    assert (w.highways == stock.highways).all() and (highways == stock.highways).all()
+    assert tuple(w.goals) == goals == tuple(tuple(g) for g in stock.goals) == ((4, 19), (5, 19))
+    cps = chokepoints(highways, goals)
+    assert {(3, 4), (6, 4), (4, 18), (5, 18)} <= cps  # top-block corridors and goal access tiles
+    assert (4, 13) not in cps  # open bottom band
