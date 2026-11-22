@@ -1,0 +1,35 @@
+# Week 8: Double + Dueling DQN controls one honest robot on tiny; the other three are A* (no saboteur yet).
+name: week8_dqn
+layout: tiny
+kind: honest          # or a saboteur behaviour, e.g. goal_blocker
+env:
+  n_agents: 4
+  max_steps: 500
+  sensor_range: 1
+planner: {horizon: 32, replan_every: 8, stuck_limit: 6, yield_prob: 0.5}
+saboteur:
+  common: {camouflage: 0.2}
+  goal_blocker: {block_distance: 5}
+  corridor_parker: {park_steps: 15, lookahead: 12}
+  shelf_hider: {cooldown: 20}
+dqn:
+  double: true
+  hidden: 128
+  lr: 0.0005
+  gamma: 0.99
+  batch_size: 64
+  buffer_size: 100000
+  learning_starts: 5000
+  train_every: 2          # environment steps per gradient step
+  target_update: 2000     # environment steps between hard target syncs
+  eps_start: 1.0
+  eps_end: 0.05
+  eps_decay_frac: 0.5     # of total_steps
+  pickup_bonus: 1.0       # shaping: picking up a currently requested shelf
+  total_steps: 300000     # 600 episodes of 500 steps
+  eval_every: 20          # episodes
+  eval_eps: 0.05
+  smoke_steps: 1500
+seeds: [8100, 8101, 8102, 8103, 8104]
+# Greedy evaluation episodes (fixed, shared with the A* benchmark).
+eval_seeds: [9000, 9001, 9002, 9003, 9004]
