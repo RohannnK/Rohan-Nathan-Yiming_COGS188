@@ -40,6 +40,13 @@ def test_linear_epsilon_schedule():
     assert epsilon(sched, 90, 100) == pytest.approx(0.1)
 
 
+def test_exponential_epsilon_schedule():
+    sched = {"kind": "exponential", "start": 1.0, "end": 0.01, "frac": 0.5}
+    assert epsilon(sched, 0, 100) == 1.0
+    assert epsilon(sched, 25, 100) == pytest.approx(0.1)
+    assert epsilon(sched, 90, 100) == pytest.approx(0.01)
+
+
 def test_cliff_walking_result_q_learning_aisle_sarsa_detour():
     """With constant epsilon, Q-learning learns the optimal aisle and SARSA the safer detour (Sutton and Barto)."""
     env = AisleGridworld(bump_prob=0.0)

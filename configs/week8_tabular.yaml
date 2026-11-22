@@ -11,7 +11,8 @@ alpha: 0.1
 episodes: 1000
 schedules:
   constant: {kind: constant, eps: 0.1}
-  decay: {kind: linear, start: 1.0, end: 0.01, frac: 0.8}
+  linear: {kind: linear, start: 1.0, end: 0.01, frac: 0.8}
+  exponential: {kind: exponential, start: 1.0, end: 0.01, frac: 0.8}
 # Main figures use this gamma.
 report_gamma: 0.99
 seeds: [8000, 8001, 8002, 8003, 8004, 8005, 8006, 8007, 8008, 8009]

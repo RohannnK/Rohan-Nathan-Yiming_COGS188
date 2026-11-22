@@ -22,12 +22,12 @@ summary.to_csv(out / f"{cfg['name']}.csv", index=False)
 vi.to_csv(out / f"{cfg['name']}_value_iteration.csv", index=False)
 print(vi.round(2).to_string(index=False))
 cols = ["bump_prob", "method", "schedule", "gamma", "aisle_share", "train_return_last100_mean",
-        "collisions_last100_mean", "collisions_total_mean", "greedy_value_mean", "v_star_start"]
+        "collisions_last100_mean", "deadlock_rate_last100_mean", "collisions_total_mean", "greedy_value_mean", "v_star_start"]
 print(summary[cols].round(3).to_string(index=False))
 if not args.smoke:
     media, g = Path("docs/media"), cfg["report_gamma"]
     plot_learning_curves(curves, "return", "return per episode (20-episode mean)", media / "week8_returns.png", g,
-                         ylim={"constant": (-60, -5), "decay": (-60, -5)})
+                         ylim={s: (-60, -5) for s in cfg["schedules"]})
     plot_learning_curves(curves, "collisions", "collisions per episode (20-episode mean)",
                          media / "week8_collisions.png", g, ylim={"constant": (0, 1)})
     for bump in cfg["bump_probs"]:

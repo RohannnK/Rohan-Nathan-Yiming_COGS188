@@ -21,9 +21,14 @@ METHODS = ("sarsa", "q_learning")
 
 
 def epsilon(schedule: dict, episode: int, n_episodes: int) -> float:
-    """'constant': eps. 'linear': start -> end over the first `frac` of training, then end."""
+    """'constant': eps. 'linear': start -> end in equal steps over the first `frac` of training, then end.
+    'exponential': start * k**episode with k chosen to reach end after `frac` of training, then end."""
     if schedule["kind"] == "constant":
         return schedule["eps"]
+    if schedule["kind"] == "exponential":
+        span = max(1, int(schedule["frac"] * n_episodes))
+        k = (schedule["end"] / schedule["start"]) ** (1 / span)
+        return max(schedule["end"], schedule["start"] * k**episode)
     if schedule["kind"] == "linear":
         span = max(1, int(schedule["frac"] * n_episodes))
         return schedule["start"] + (schedule["end"] - schedule["start"]) * min(1.0, episode / span)
@@ -103,6 +108,7 @@ def run_tabular_experiment(cfg: dict, smoke: bool = False) -> tuple[pd.DataFrame
                                      "v_star_start": optimal[gamma],
                                      "train_return_last100": tail["return"].mean(),
                                      "collisions_last100": tail["collisions"].mean(),
+                                     "deadlock_rate_last100": (tail["collisions"] > 0).mean(),
                                      "collisions_total": int(log["collisions"].sum()),
                                      "env_steps": int(log["steps"].sum()), "train_seconds": secs})
     return pd.concat(curves, ignore_index=True), pd.DataFrame(runs), pd.DataFrame(vi_rows), paths
@@ -111,7 +117,7 @@ def run_tabular_experiment(cfg: dict, smoke: bool = False) -> tuple[pd.DataFrame
 def summarise_runs(runs: pd.DataFrame) -> pd.DataFrame:
     """Mean and std over seeds per bump_prob x method x schedule x gamma, plus the share of seeds whose greedy route is the aisle."""
     g = runs.groupby(["bump_prob", "method", "schedule", "gamma"])
-    cols = ["train_return_last100", "collisions_last100", "collisions_total", "greedy_value", "path_len",
+    cols = ["train_return_last100", "collisions_last100", "deadlock_rate_last100", "collisions_total", "greedy_value", "path_len",
             "env_steps", "train_seconds"]
     out = g[cols].agg(["mean", "std"])
     out.columns = [f"{c}_{s}" for c, s in out.columns]
