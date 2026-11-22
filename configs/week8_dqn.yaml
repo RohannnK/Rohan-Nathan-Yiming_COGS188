@@ -30,6 +30,6 @@ dqn:
   eval_every: 20          # episodes
   eval_eps: 0.05
   smoke_steps: 1500
-seeds: [8100, 8101, 8102]
+seeds: [8100, 8101, 8102, 8103, 8104]
 # Greedy evaluation episodes (fixed, shared with the A* benchmark).
 eval_seeds: [9000, 9001, 9002, 9003, 9004]

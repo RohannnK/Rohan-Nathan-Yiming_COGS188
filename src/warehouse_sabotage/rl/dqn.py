@@ -131,7 +131,7 @@ def train_dqn(cfg: dict, seed: int, out_dir: str | Path | None = None, smoke: bo
     rng = np.random.default_rng(seed)
     env, eval_env = make_fleet_env(cfg), make_fleet_env(cfg)
     agent = DQNAgent(env.obs_dim, env.n_actions, d, rng)
-    episode_seeds = np.random.default_rng((seed, 1)).integers(10**9, size=total // 100 + 1)
+    episode_seeds = np.random.default_rng((seed, 1)).integers(10**9, size=total)  # at least one per step: never runs out
     eval_seeds = cfg["eval_seeds"][: 1 if smoke else None]
     step, ep, rows, t0 = 0, 0, [], time.perf_counter()
     while step < total:

@@ -24,32 +24,32 @@ Outputs: `results/summary/week8_dqn.csv`, `docs/media/week8_dqn_progress.png`. T
 - **Evaluation:** every 20 episodes, 5 fixed episodes (seeds 9000 to 9004) at epsilon 0.05.
   - Benchmark: an A* robot in the learner's slot on the same seeds.
   - Lower bound: a robot that never moves.
-- **Seeds:** 3 training seeds (8100 to 8102).
+- **Seeds:** 5 training seeds (8100 to 8104), the minimum the reporting rule (section 8) asks for learned methods.
 
 ## Results (300k steps per seed)
 
 | robot in the learner's slot | its deliveries per episode | fleet deliveries (3 A* + this robot) |
 |---|---|---|
 | A* robot (benchmark) | 15.8 | 65.2 |
-| DQN, last 100 training episodes (epsilon 0.05) | 6.3 ± 0.2 | 52.8 ± 0.2 |
-| DQN, final evaluation | 3.3 ± 0.8 | 50.8 ± 1.1 |
-| DQN, best evaluation during training | 8.1 ± 1.8 | |
+| DQN, last 100 training episodes (epsilon 0.05) | 4.8 ± 2.3 | 51.3 ± 2.0 |
+| DQN, final evaluation | 3.1 ± 1.4 | 51.4 ± 1.3 |
+| DQN, best evaluation during training | 6.2 ± 3.1 | |
 | robot that never moves | 0.0 | 46.8 |
 
-Mean ± std over the 3 seeds; the evaluation rows use 5 episodes per seed.
+Mean ± std over the 5 seeds; the evaluation rows use 5 episodes per seed. Per seed, last 100 training episodes: 6.3, 6.2, 6.6, 1.2 and 3.8 deliveries.
 
 ![DQN training progress](media/week8_dqn_progress.png)
 
 ## Findings
 
-- **The DQN robot learns to deliver from local observations alone.** It starts at 0 deliveries, passes 1 per episode after about 40k steps, and settles at about 4 to 6 per evaluation episode after 150k steps, when epsilon reaches its floor. All 3 seeds show the same shape.
-- **It reaches about 40% of the A* robot** (6.3 against 15.8 deliveries in the last 100 training episodes). The fleet with a DQN robot delivers 52.8 against 65.2 with four A* robots. That is 6 more than with a robot that never moves (46.8), so the learner now adds to the fleet rather than getting in its way. A random robot in the same slot costs the fleet about 20 deliveries (smoke check: 46 and 44 in two episodes).
+- **The DQN robot learns to deliver from local observations alone, but not reliably across seeds.** On average it starts at 0 deliveries, reaches about 1 per evaluation episode after 40k steps, and climbs after 150k steps, when epsilon reaches its floor. Three seeds reach about 6 deliveries per episode, one reaches 3.8 and one barely learns (1.2). Seed variance is the main result at this budget.
+- **On average it reaches about 30% of the A* robot** (4.8 ± 2.3 against 15.8 deliveries in the last 100 training episodes; the best seeds reach about 40%). The fleet with a DQN robot delivers 51.3 against 65.2 with four A* robots. That is about 4.5 more than with a robot that never moves (46.8), so the learner adds to the fleet rather than getting in its way, even for the weakest seed (48.5). A random robot in the same slot costs the fleet about 20 deliveries (smoke check: 46 and 44 in two episodes).
 - **Training has not converged.** The return was still rising at 300k steps, and evaluation is noisy: 5 episodes per point, with dips of 2 to 4 deliveries between neighbouring points. Final-evaluation numbers are therefore less reliable than the training average.
 - **The learner still wastes moves.** One seed picks up requested shelves 47 times per evaluation episode for 2.4 deliveries. It likely picks up and drops shelves it cannot yet carry to a goal. The bonus no longer pays for this, so it is inefficiency rather than reward hacking, but it is the first thing to look at.
-- **Cost.** 300k steps take about 7 minutes per seed on a laptop CPU (about 710 steps per second, A* planning for the other three robots included). The three seeds ran in parallel.
+- **Cost.** 300k steps take about 7 minutes per seed on a laptop CPU (about 710 steps per second, A* planning for the other three robots included). Seeds ran two or three at a time in parallel.
 
 ## Next (Week 9)
 
-- Train longer (1M to 2M steps) and evaluate on more episodes (20 or more) before comparing with A*.
+- Train longer (1M to 2M steps) and evaluate on more episodes (20 or more) before comparing with A*. Check whether the weak seeds catch up with more training or need a different setting (for example a slower epsilon decay).
 - Run the limited hyperparameter search from the proposal (learning rate, gamma, epsilon schedule, shaping on/off) across seeds.
 - Rerun under sabotage (`kind: goal_blocker` etc. in the config) and on the small map (`layout: small`, once PR #6 is merged) for the DQN vs. A* comparison.
