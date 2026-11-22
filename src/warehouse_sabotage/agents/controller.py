@@ -19,6 +19,12 @@ from .simple import ParkedPolicy, RandomPolicy
 class FleetController:
     def __init__(self, policies: Sequence[Policy], ctx: FleetContext, monitor: Monitor | None = None):
         self.policies, self.ctx, self.monitor = list(policies), ctx, monitor
+        # planner["quarantine_steps"]: how long the tile a robot was flagged on stays blocked. 0 (default since the
+        # Week 7 follow-up) = never: only the flagged robot's current tile is avoided, through ctx.flagged. None = for
+        # the rest of the episode (the original Week 7 design; it hurt against goal_blocker, docs/week7_quarantine.md).
+        # N = for N steps after the flag.
+        self.quarantine_steps = ctx.planner.get("quarantine_steps", 0)
+        self.flag_t: dict[int, int] = {}
 
     def reset(self, state: WarehouseState, rngs: Sequence[np.random.Generator]) -> None:
         for i, p in enumerate(self.policies):
@@ -29,8 +35,13 @@ class FleetController:
     def act(self, state: WarehouseState) -> list[int]:
         if self.monitor:
             self.ctx.flagged = self.monitor.flagged()
+            q = self.quarantine_steps
             for rid in self.ctx.flagged:  # block the tile a robot was flagged on, even after it moves away
-                self.ctx.quarantine.setdefault(rid, (state.robots[rid].x, state.robots[rid].y))
+                t0 = self.flag_t.setdefault(rid, state.t)
+                if q is None or state.t - t0 < q:
+                    self.ctx.quarantine.setdefault(rid, (state.robots[rid].x, state.robots[rid].y))
+                else:
+                    self.ctx.quarantine.pop(rid, None)
         for p in self.policies:  # detect failed moves before anyone plans against stale reservations
             if hasattr(p, "sync"):
                 p.sync(state)

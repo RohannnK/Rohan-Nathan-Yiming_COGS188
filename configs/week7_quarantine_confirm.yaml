@@ -1,0 +1,94 @@
+# Quarantine ablation for the Week 7 logistic monitor (Version 2). Confirmation run: fresh seeds 3200-3229, used once, after the quarantine mode was chosen.
+# <behaviour>_permanent: the Week 7 design (the tile a robot was flagged on is blocked for the rest of the episode);
+# _off: only the flagged robot's current tile is avoided; _timed: the flagged tile is blocked for 50 steps (fixed in
+# advance, not tuned). _blind: no monitor; _oracle: Week 6 fleet that knows the saboteur from step 0.
+# Needs data/models/logistic_v2.joblib (python scripts/train_monitor.py --selection episode --suffix _v2).
+name: week7_quarantine_confirm
+env:
+  n_agents: 4
+  max_steps: 500
+  sensor_range: 1
+layouts: [tiny, tiny_choke]
+deadlock_L: {tiny: 26, tiny_choke: 30}
+
+conditions:
+  no_saboteur: honest
+  no_saboteur_permanent: {kind: honest, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: null}}
+  no_saboteur_off: {kind: honest, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 0}}
+  no_saboteur_timed: {kind: honest, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 50}}
+  idle_robot_blind: {kind: parked, oracle: false}
+  idle_robot_permanent: {kind: parked, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: null}}
+  idle_robot_off: {kind: parked, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 0}}
+  idle_robot_timed: {kind: parked, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 50}}
+  goal_blocker_oracle: {kind: goal_blocker}
+  goal_blocker_blind: {kind: goal_blocker, oracle: false}
+  goal_blocker_permanent: {kind: goal_blocker, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: null}}
+  goal_blocker_off: {kind: goal_blocker, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 0}}
+  goal_blocker_timed: {kind: goal_blocker, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 50}}
+  corridor_parker_oracle: {kind: corridor_parker}
+  corridor_parker_blind: {kind: corridor_parker, oracle: false}
+  corridor_parker_permanent: {kind: corridor_parker, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: null}}
+  corridor_parker_off: {kind: corridor_parker, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 0}}
+  corridor_parker_timed: {kind: corridor_parker, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 50}}
+  shelf_hider_oracle: {kind: shelf_hider}
+  shelf_hider_blind: {kind: shelf_hider, oracle: false}
+  shelf_hider_permanent: {kind: shelf_hider, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: null}}
+  shelf_hider_off: {kind: shelf_hider, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 0}}
+  shelf_hider_timed: {kind: shelf_hider, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 50}}
+  shelf_squatter_oracle: {kind: shelf_squatter}
+  shelf_squatter_blind: {kind: shelf_squatter, oracle: false}
+  shelf_squatter_permanent: {kind: shelf_squatter, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: null}}
+  shelf_squatter_off: {kind: shelf_squatter, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 0}}
+  shelf_squatter_timed: {kind: shelf_squatter, oracle: false, monitor: data/models/logistic_v2.joblib, planner: {quarantine_steps: 50}}
+
+planner:
+  horizon: 32        # space-time A* horizon, then spatial A*
+  replan_every: 8    # K
+  stuck_limit: 6     # steps without moving before a randomised yield is considered
+  yield_prob: 0.5
+
+saboteur:
+  common:
+    camouflage: 0.2  # per-step probability of an honest-looking cover action
+  goal_blocker: {block_distance: 5}
+  corridor_parker: {park_steps: 15, lookahead: 12}
+  shelf_hider: {cooldown: 20}
+
+# Paired comparisons for scripts/paired_analysis.py: each mode against the blind fleet and against the Week 7 design.
+pairs:
+  - [no_saboteur_permanent, no_saboteur]
+  - [no_saboteur_off, no_saboteur]
+  - [no_saboteur_timed, no_saboteur]
+  - [idle_robot_permanent, idle_robot_blind]
+  - [idle_robot_off, idle_robot_blind]
+  - [idle_robot_timed, idle_robot_blind]
+  - [idle_robot_off, idle_robot_permanent]
+  - [idle_robot_timed, idle_robot_permanent]
+  - [goal_blocker_permanent, goal_blocker_blind]
+  - [goal_blocker_off, goal_blocker_blind]
+  - [goal_blocker_timed, goal_blocker_blind]
+  - [goal_blocker_off, goal_blocker_permanent]
+  - [goal_blocker_timed, goal_blocker_permanent]
+  - [corridor_parker_permanent, corridor_parker_blind]
+  - [corridor_parker_off, corridor_parker_blind]
+  - [corridor_parker_timed, corridor_parker_blind]
+  - [corridor_parker_off, corridor_parker_permanent]
+  - [corridor_parker_timed, corridor_parker_permanent]
+  - [shelf_hider_permanent, shelf_hider_blind]
+  - [shelf_hider_off, shelf_hider_blind]
+  - [shelf_hider_timed, shelf_hider_blind]
+  - [shelf_hider_off, shelf_hider_permanent]
+  - [shelf_hider_timed, shelf_hider_permanent]
+  - [shelf_squatter_permanent, shelf_squatter_blind]
+  - [shelf_squatter_off, shelf_squatter_blind]
+  - [shelf_squatter_timed, shelf_squatter_blind]
+  - [shelf_squatter_off, shelf_squatter_permanent]
+  - [shelf_squatter_timed, shelf_squatter_permanent]
+  - [no_saboteur_off, no_saboteur_permanent]
+  - [no_saboteur_timed, no_saboteur_permanent]
+
+seeds: [3200, 3201, 3202, 3203, 3204, 3205, 3206, 3207, 3208, 3209, 3210, 3211, 3212, 3213, 3214, 3215, 3216, 3217, 3218, 3219, 3220, 3221, 3222, 3223, 3224, 3225, 3226, 3227, 3228, 3229]
+
+smoke:
+  episodes: 2
+  max_steps: 100
