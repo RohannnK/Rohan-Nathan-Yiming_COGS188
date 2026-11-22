@@ -1,0 +1,20 @@
+# Week 8: SARSA vs. Q-learning on the single-aisle gridworld with a stochastic blocker (rl/gridworld.py).
+name: week8_tabular
+grid:
+  step_reward: -1.0
+  collision_reward: -20.0   # on top of the step reward; the robot returns to S
+  max_steps: 200            # per training episode
+# Probability that the blocker steps into the aisle tile the robot ends a step on. 0 = the lane alone is the hazard.
+bump_probs: [0.0, 0.01]
+gammas: [0.9, 0.95, 0.99]
+alpha: 0.1
+episodes: 1000
+schedules:
+  constant: {kind: constant, eps: 0.1}
+  decay: {kind: linear, start: 1.0, end: 0.01, frac: 0.8}
+# Main figures use this gamma.
+report_gamma: 0.99
+seeds: [8000, 8001, 8002, 8003, 8004, 8005, 8006, 8007, 8008, 8009]
+smoke:
+  seeds: 2
+  episodes: 50
